@@ -17,10 +17,10 @@ const freekaViewroute = require('./Routers/freekaViewroute.js');
 const ProfilesRouter = require('./Routers/ProfilesRouter.js');
 const contactRouter = require('./Routers/contactRouter.js');
 
+app.use(cors())
 app.use(express.json());
 app.use(express.static('./public'));
 app.use(cookieParser());
-app.use(cors())
 // app.use(
 //     cors({
 //       origin:["http://localhost:3002","http://localhost:3001"],
