@@ -7,7 +7,7 @@ const Userdetails = () => {
     const {_id} = useParams()
     const getApiData = async () => {
         try {
-            let res = await axios.get("http://localhost:3000/api/v1/adminPanel/user/" + _id)
+            let res = await axios.get("https://api.muslimmalikrishte.com/api/v1/adminPanel/user/" + _id)
             // console.log(res.data.user);
             setData(res.data.user);
         } catch (error) {
