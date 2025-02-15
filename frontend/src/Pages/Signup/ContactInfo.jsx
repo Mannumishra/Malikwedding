@@ -1,8 +1,115 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import "./SignupPage.css";
 import { Link } from "react-router-dom";
+import Modal from "react-modal";
+import Swal from "sweetalert2";
+import axios from "axios";
+Modal.setAppElement("#root"); // Required for accessibility
 
 const ContactInfo = ({ formData, handleChange, goToTab }) => {
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [shw,SetShw] = useState(0);
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+
+    const requiredFields = [
+      "phone",
+      "email",
+      "area",
+      "city",
+      "state",
+      "pin",
+      "country",
+      "weddingStyle",
+      "acceptTerms",
+    ];
+
+    const isValid = requiredFields.every(
+      (field) => formData[field]?.trim() !== ""
+    );
+    setIsFormValid(isValid);
+  }, [formData]);
+
+  // ----------- Email verify ----------
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+
+  const openModal = () => setIsModalOpen(true);
+  const closeModal = () => setIsModalOpen(false);
+
+  const handleEmailChange = (e, index) => {
+    const value = e.target.value;
+    if (!/^\d*$/.test(value)) return; // Only allow numbers
+
+    const newOtp = [...otp];
+    newOtp[index] = value;
+    setOtp(newOtp);
+
+    // Move to next input if a digit is entered
+    if (value && index < 5) {
+      document.getElementById(`otp-${index + 1}`).focus();
+    }
+  };
+
+  const handleKeyDown = (e, index) => {
+    if (e.key === "Backspace" && index > 0 && !otp[index]) {
+      document.getElementById(`otp-${index - 1}`).focus();
+    }
+  };
+
+  const handleVerifyEmail = async (email, otp1) => {
+    try {
+      const otp = otp1.join('');
+      console.log(email,otp);
+        const response = await axios.post('https://api.muslimmalikrishte.com/api/v1/auth/verifyEmailOTP', { email, otp });
+
+        if (response.data.message === 'OTP verified successfully') {
+            Swal.fire({
+                title: "OTP Verified Successfully!",
+                text: "Your email has been verified.",
+                icon: "success",
+                confirmButtonText: "OK",
+            });
+            SetShw(1);
+            setIsModalOpen(false);
+        } else {
+            Swal.fire({
+                title: "OTP Verification Failed!",
+                text: "Please enter the correct OTP.",
+                icon: "error",
+                confirmButtonText: "Retry",
+            });
+        }
+    } catch (error) {
+        console.error("Error verifying OTP:", error.response?.data || error.message);
+        Swal.fire({
+            title: "Verification Error!",
+            text: error.response?.data?.error || "Something went wrong. Please try again.",
+            icon: "error",
+            confirmButtonText: "Retry",
+        });
+    }
+};
+
+
+  const sendMail = async (email) => {
+    try {
+        console.log("Sending email to:", email);
+        
+        const response = await axios.post('https://api.muslimmalikrishte.com/api/v1/auth/verifyEmail', { email });
+
+        // alert("Email verification response:", response.data);
+    } catch (error) {
+        console.error("Error sending email:", error.response?.data || error.message);
+    }
+};
+
+
   return (
     <>
       <div>
@@ -17,6 +124,7 @@ const ContactInfo = ({ formData, handleChange, goToTab }) => {
                 <input
                   type="number"
                   id="phone"
+                  min={1}
                   name="phone"
                   value={formData.phone}
                   onChange={handleChange}
@@ -100,6 +208,7 @@ const ContactInfo = ({ formData, handleChange, goToTab }) => {
                   type="number"
                   id="pin"
                   name="pin"
+                  min={1}
                   value={formData.pin}
                   onChange={handleChange}
                   required
@@ -167,27 +276,88 @@ const ContactInfo = ({ formData, handleChange, goToTab }) => {
           </div>
 
           <div className="container my-2">
-            <label>
-              <input type="checkbox" name="acceptTerms" required />I have read
-              and agree to the{" "}
-              <Link to="/termCondition" rel="noopener noreferrer">
-                Terms and Conditions
-              </Link>{" "}
-              and{" "}
-              <Link to="/privacyPolicy" rel="noopener noreferrer">
-                Privacy Policy
-              </Link>
-              
-            </label>
+            <input
+              type="checkbox"
+              name="acceptTerms"
+              id="acceptTerms"
+              required
+            />
+            I have read and agree to the{" "}
+            <Link to="/termCondition" rel="noopener noreferrer">
+              Terms and Conditions
+            </Link>{" "}
+            and{" "}
+            <Link to="/privacyPolicy" rel="noopener noreferrer">
+              Privacy Policy
+            </Link>
           </div>
+          <button
+            type="button"
+            className="next-btn login-page-btn bg-secondary mx-1"
+            onClick={() => goToTab(1)}
+          >
+            Back
+          </button>
+{ shw?
           <button
             type="button"
             className="next-btn login-page-btn"
             onClick={() => goToTab(3)}
+            disabled={!isFormValid}
+            title={!isFormValid ? "Please fill all mandatory fields." : ""} // ✅ Shows message when disabled
           >
             Next
           </button>
+:
+          <button
+            type="button"
+            className="btn bg-info mx-2"
+            onClick={() => {
+              sendMail(formData.email); 
+              openModal(); 
+            }}
+          >
+            Verify Email
+          </button>
+}
         </form>
+
+        <Modal
+          isOpen={isModalOpen}
+          onRequestClose={closeModal}
+          className="otp-modal-content"
+          overlayClassName="modal-overlay"
+        >
+          <div className="modal-header d-flex justify-content-between">
+            <h5 className="modal-title">OTP has been sent to your Email</h5>
+            <button className="btn-close" onClick={closeModal}></button>
+          </div>
+
+          <div className="modal-body text-center">
+            <p>Please enter the OTP</p>
+            <div className="d-flex justify-content-center">
+              {otp.map((digit, index) => (
+                <input
+                  key={index}
+                  id={`otp-${index}`}
+                  type="text"
+                  maxLength="1"
+                  className="otp-input text-center"
+                  value={digit}
+                  onChange={(e) => handleEmailChange(e, index)}
+                  onKeyDown={(e) => handleKeyDown(e, index)}
+                />
+              ))}
+            </div>
+            <button
+              type="button"
+              className="verfity-btn"
+              onClick={() => handleVerifyEmail(formData.email,otp)} // Pass true for success, false for error
+            >
+              Verify Email
+            </button>
+          </div>
+        </Modal>
       </div>
     </>
   );

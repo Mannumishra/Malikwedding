@@ -72,6 +72,9 @@ const UserSchema = new mongoose.Schema({
     type: String,
     unique: true,
   },
+  emailVerified:{
+    type:Boolean,
+  },
   image: {
     type: String,
   },
@@ -132,6 +135,13 @@ UserSchema.pre('save', async function (next) {
   } catch (error) {
     next(error);
   }
+});
+
+UserSchema.pre('save',async function (next) {
+  if (this.city) {
+      this.city = this.city.toUpperCase();
+  }
+  next();
 });
 
 UserSchema.methods.comparePassword = async function (candidatePassword) {

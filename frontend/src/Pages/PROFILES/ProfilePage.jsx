@@ -4,35 +4,51 @@ import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet";
 import profilebg from "../../Assets/ProfileBg.jpeg";
 import Modal from "react-modal";
-import axios from 'axios';
-import {axiosInstance} from "../Login/Loginpage";
+import { axiosInstance } from "../Login/Loginpage";
 import { useNavigate } from "react-router-dom";
 
 Modal.setAppElement("#root");
 
 const ProfilePage = () => {
   const navigate = useNavigate();
-  const [prf,SetPrf] = useState([])
-  const [allprf,SetAllPrf] = useState([])
+  const [prf, SetPrf] = useState([]);
+  const [allprf, SetAllPrf] = useState([]);
+  const [cities, SetCities] = useState([]);
 
-  const getDETAILS = async()=>{
+  const getDETAILS = async () => {
     try {
-      const response = await axiosInstance.get('/api/v1/profiles/opposite/users')
+      const response = await axiosInstance.get(
+        "/api/v1/profiles/opposite/users"
+      );
       // console.log("adta is",response.data.opp);
       SetPrf(response.data.opp);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
-  const getALLDETAILS = async()=>{
+  };
+
+  const getALLDETAILS = async () => {
     try {
-      const response = await axiosInstance.get('/api/v1/adminPanel/allUsers')
+      const response = await axiosInstance.get("/api/v1/adminPanel/allUsers");
       // console.log("adta is",response.data.opp);
       SetAllPrf(response.data);
     } catch (error) {
-      console.log(error)
+      console.log(error);
     }
-  }
+  };
+
+  const cityFilters = async () => {
+    try {
+      const response = await axiosInstance.get(
+        `/api/v1/profiles/city/for/option`
+      );
+      // console.log(response.data.city);
+      SetCities(response.data.city);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   useEffect(() => {
     window.scrollTo({
       top: 0,
@@ -41,7 +57,8 @@ const ProfilePage = () => {
     const userStatus = localStorage.getItem("user");
     if (userStatus) {
       getDETAILS();
-    }else{
+      cityFilters();
+    } else {
       getALLDETAILS();
     }
   }, []);
@@ -50,9 +67,9 @@ const ProfilePage = () => {
 
   const [filters, setFilters] = useState({
     gender: "",
-    age: 25, 
+    age: 25,
     city: "",
-    budget: 50000, 
+    budget: 100000,
   });
 
   const handleInputChange = (e) => {
@@ -72,22 +89,22 @@ const ProfilePage = () => {
   const handlefilterSubmit = async () => {
     try {
       const response = await axiosInstance.post(
-        '/api/v1/profiles/profiles/filter',
+        "/api/v1/profiles/profiles/filter",
         filters, // Make sure 'filters' contains gender, age, city, and budget
         {
           headers: {
-            'Content-Type': 'application/json', 
+            "Content-Type": "application/json",
           },
         }
       );
-      // console.log("Filtered Users:", response.data.all);
+      console.log("Filtered Users:", response.data.all);
+      SetPrf(response.data.all);
       // Handle the response (e.g., set the filtered users in state to render them)
     } catch (error) {
       console.error("Error applying filters:", error);
       // You can show an error message to the user
     }
   };
-  
 
   return (
     <>
@@ -132,23 +149,28 @@ const ProfilePage = () => {
                   className="form-control"
                 >
                   <option value="">Select Gender</option>
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
+                  <option value="Male">Male</option>
+                  <option value="Female">Female</option>
                 </select>
               </div>
 
               {/* City Filter */}
               <div className="filter-item col-md-3 col-12">
                 <label htmlFor="city">City</label>
-                <input
-                  type="text"
+                <select
                   id="city"
                   name="city"
                   value={filters.city}
                   onChange={handleInputChange}
                   className="form-control"
-                  placeholder="Enter City"
-                />
+                >
+                  <option value="">Select City</option>
+                  {cities.map((cit, index) => (
+                    <option key={index} value={cit.city}>
+                      {cit.city}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               {/* Age Range Slider */}
@@ -175,9 +197,9 @@ const ProfilePage = () => {
                   type="range"
                   id="budget"
                   name="budget"
-                  min="10000"
-                  max="10000000"
-                  step="2"
+                  min="20000"
+                  max="1000000"
+                  step="10000"
                   value={filters.budget}
                   onChange={handleInputChange}
                   className="form-range"
@@ -186,7 +208,11 @@ const ProfilePage = () => {
 
               {/* Submit Button */}
               <div className="col-md-1 col-12 text-center mt-md-0 mt-3">
-                <button type="submit" className="btn-btn filter-submit" onClick={handlefilterSubmit}>
+                <button
+                  type="submit"
+                  className="btn-btn filter-submit"
+                  onClick={handlefilterSubmit}
+                >
                   Search
                 </button>
               </div>
@@ -194,95 +220,92 @@ const ProfilePage = () => {
           </div>
 
           <div className="row">
-          {localStorage.getItem("user") ? (
-            <div className="profile-container">
-              {prf.map((profile) => (
-                <div
-                  className="profile-card col-md-3 mb-4"
-                  key={profile._id}
-                >
-                  <div
-                    className="profile-image"
-                    style={{
-                      backgroundImage: `url(${profilebg})`,
-                    }}
-                  >
-                    <img
-                      src={profile.image}
-                      alt={profile.fullName}
-                      onClick={() => {
-                        setModalOpen(true)
-                        navigate(`/InnerProfile/${profile._id}`)
+            {localStorage.getItem("user") ? (
+              <div className="profile-container">
+                {prf.map((profile) => (
+                  <div className="profile-card col-md-3 mb-4" key={profile._id}>
+                    <div
+                      className="profile-image"
+                      style={{
+                        backgroundImage: `url(${profilebg})`,
                       }}
-                      className="profile-pic"
-                    />
-                  </div>
-                  <div className="profile-details">
-                    <div className="details-row">
-                      <p>
-                        <strong>Name:</strong> {profile.fullName}
-                      </p>
-                      <p>
-                        <strong>Age:</strong> {profile.age}
-                      </p>
+                    >
+                      <img
+                        src={profile.image}
+                        alt={profile.fullName}
+                        onClick={() => {
+                          setModalOpen(true);
+                          navigate(`/InnerProfile/${profile._id}`);
+                        }}
+                        className="profile-pic"
+                      />
                     </div>
-                    <div className="details-row">
-                      <p>
-                        <strong>Place:</strong> {profile.state}
-                      </p>
-                      <p>
-                        <strong>Height:</strong> {profile.height}
-                      </p>
+                    <div className="profile-details">
+                      <div className="details-row">
+                        <p>
+                          <strong>Name:</strong> {profile.fullName}
+                        </p>
+                      </div>
+                      <div className="details-row">
+                        <p>
+                          <strong>Height:</strong> {profile.height}
+                        </p>
+                        <p>
+                          <strong>Age:</strong> {profile.age}
+                        </p>
+                      </div>
+                      <div className="details-row">
+                        <p>
+                          <strong>Place:</strong> {profile.state}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) :(
-            <div className="profile-container">
-              {allprf.map((profile) => (
-                <div
-                  className="profile-card col-md-3 mb-4"
-                  key={profile._id}
-                >
-                  <div
-                    className="profile-image"
-                    style={{
-                      backgroundImage: `url(${profilebg})`,
-                    }}
-                  >
-                    <img
-                      src={profile.image}
-                      alt={profile.fullName}
-                      onClick={() => {
-                        setModalOpen(true)
-                        navigate(`/login`)
+                ))}
+              </div>
+            ) : (
+              <div className="profile-container">
+                {allprf.map((profile) => (
+                  <div className="profile-card col-md-3 mb-4" key={profile._id}>
+                    <div
+                      className="profile-image"
+                      style={{
+                        backgroundImage: `url(${profilebg})`,
                       }}
-                      className="profile-pic"
-                    />
-                  </div>
-                  <div className="profile-details">
-                    <div className="details-row">
-                      <p>
-                        <strong>Name:</strong> {profile.fullName}
-                      </p>
-                      <p>
-                        <strong>Age:</strong> {profile.age}
-                      </p>
+                    >
+                      <img
+                        src={profile.image}
+                        alt={profile.fullName}
+                        onClick={() => {
+                          setModalOpen(true);
+                        }}
+                        className="profile-pic"
+                      />
                     </div>
-                    <div className="details-row">
-                      <p>
-                        <strong>Place:</strong> {profile.state}
-                      </p>
-                      <p>
-                        <strong>Height:</strong> {profile.height}
-                      </p>
+                    <div className="profile-details">
+                      <div className="details-row">
+                        <p>
+                          <strong>Name:</strong> {profile.fullName}
+                        </p>
+                      </div>
+                      <div className="details-row">
+                        <p>
+                          <strong>Height:</strong> {profile.height}
+                        </p>
+                        <p>
+                          <strong>Age:</strong> {profile.age}
+                        </p>
+                      </div>
+                      <div className="details-row">
+                        <p>
+                          <strong>Place:</strong> {profile.state}
+                        </p>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
+                ))}
+              </div>
+            )}
           </div>
 
           <Modal
@@ -315,7 +338,6 @@ const ProfilePage = () => {
                   border: "none",
                   borderRadius: "5px",
                 }}
-                onClick={() => alert("Redirecting to Login page...")}
               >
                 Login
               </button>

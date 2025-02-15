@@ -24,7 +24,7 @@ const sendRqst = async(req,res)=>{
 const AcceptRequest = async (req, res) => {
     try {
         const id  = req.params.id;
-        // console.log(id)
+
         const request = await ConnectionRequestModel.findById(id)//.populate('sender recipient');
         // console.log(request);
         if (!request || request.status !== 'pending') {
@@ -50,7 +50,7 @@ const AcceptRequest = async (req, res) => {
 const RejectRequest = async(req,res)=>{
     try {
         const id  = req.params.id;
-        // console.log(id)
+        console.log(id)
         const request = await ConnectionRequestModel.findById(id);
         if (!request || request.status !== 'pending') {
             return res.status(400).json({ msg: 'Invalid or already processed request' });
@@ -85,11 +85,13 @@ const getAllRequest = async (req, res) => {
 
 const RequestForMe = async (req, res) => {
     try {
-        const requests = await ConnectionRequestModel.find({ recipient: req.user.userId })
-            .populate("sender", "fullName gender maritalstatus email age city working image phone "); // Populate sender details if needed
+        const requests = await ConnectionRequestModel.find({ 
+            recipient: req.user.userId, 
+            status: "pending" 
+        }).populate("sender", "fullName gender maritalstatus email age city working image phone"); 
 
         if (!requests || requests.length === 0) {
-            return res.status(400).json({ msg: "No requests found" });
+            return res.status(400).json({ msg: "No pending requests found" });
         }
 
         return res.status(200).json({ requests });
@@ -97,6 +99,7 @@ const RequestForMe = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 const deletedRequest = async(req,res)=>{
     try {
@@ -111,12 +114,15 @@ const deletedRequest = async(req,res)=>{
 
 const allConections = async (req, res) => {
     try {
-        const user = await UserModel.findById(req.user.userId);
+        const user = await UserModel.findById(req.user.userId).populate({
+            path: "connections",
+            select: "fullName email gender age city working image", // Select only the fields you need
+        });
+
         if (!user) {
             return res.status(404).json({ error: "User not found" });
         }
 
-        // Ensure `connections` is an array
         if (!Array.isArray(user.connections)) {
             return res.status(400).json({ error: "Invalid connections data" });
         }
@@ -127,11 +133,12 @@ const allConections = async (req, res) => {
                 index === self.findIndex((c) => c._id.toString() === conn._id.toString())
         );
 
-        res.send(uniqueConnections);
+        res.status(200).json(uniqueConnections);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 
 

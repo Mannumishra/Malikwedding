@@ -1,9 +1,19 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import axios from "axios";
+import ReactModal from "react-modal";
 import "./SignupPage.css";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
+ReactModal.setAppElement("#root");
 
-const Review = ({ formData }) => {
+const Review = ({ formData, goToTab }) => {
+
+  useEffect(() => {
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  }, []);
+  
   const [profileImage, setProfileImage] = useState(null);
   const navigate = useNavigate();
   // Handle image upload
@@ -46,6 +56,8 @@ const Review = ({ formData }) => {
       alert("Failed to submit the form. Please try again.");
     }
   };
+
+  // ------------ OTP Verification ---------------
 
   return (
     <>
@@ -188,9 +200,18 @@ const Review = ({ formData }) => {
           type="button"
           className="submit-btn login-page-btn"
           onClick={handleSubmit}
+          // onClick={() => setShowOTPForm(true)}
         >
           Submit
         </button>
+        <button
+          type="button"
+          className="submit-btn login-page-btn bg-secondary mt-1"
+          onClick={() => goToTab(2)}
+        >
+          Go Back
+        </button>
+
       </div>
     </>
   );

@@ -1,4 +1,5 @@
 const UserModel=require('../Model/UserModel.js')
+const EmailVerifyModelSigUP = require('../Model/EmailModel.js');
 const cloudinary = require('cloudinary').v2
 const fs = require('fs');
 const crypto = require('crypto');
@@ -24,6 +25,37 @@ const sentResetPasswordMail = async (name, email, myToken) => {
             to: email,
             subject: 'For reset password',
             html: '<p>Hi ' + name + ', please check 6 digit OTP ' + myToken + ' for reset your password</a></p>',
+        };
+
+        transporter.sendMail(mailOptions, function (error, info) {
+            if (error) {
+                console.log(error);
+            } else {
+                console.log("Mail has been sent: ", info.response);
+            }
+        });
+    } catch (error) {
+        console.error("Error while sending email: ", error);
+    }
+};
+const sentResetPasswordMail2 = async ( email, myToken) => {
+    try {
+        const transporter = nodemailer.createTransport({
+            host: 'smtp.gmail.com',
+            port: 587, // Use 587 for TLS
+            secure: false, // Use false for TLS
+            requireTLS: true, // Ensure TLS is used
+            auth: {
+                user: process.env.EMAILUSER,
+                pass: process.env.EMAILPASSWORD,
+            }
+        });
+
+        const mailOptions = {
+            from: process.env.EMAILUSER,
+            to: email,
+            subject: 'For reset password',
+            html: '<p>Hi ' + ', please check 6 digit OTP ' + myToken + ' for Verify Email</a></p>',
         };
 
         transporter.sendMail(mailOptions, function (error, info) {
@@ -126,8 +158,6 @@ const RegisterUser = async (req, res) => {
       });
     }
   };
-  
-  
 
 const LoginUser = async (req, res) => {
     try {
@@ -161,7 +191,7 @@ const LoginUser = async (req, res) => {
         });
         
 
-        return res.status(200).json({ user: 'Login successful' });
+        return res.status(200).json({ user: 'Login successful'});
     } catch (error) {
         console.error('Error during login:', error); // Log error for debugging
         res.status(500).json({ message: 'Login failed. Please try again later.' });
@@ -198,6 +228,33 @@ const forgotPasswordUser = async(req,res)=>{
         res.status(400).json({error:error});
     }
 }
+const verifyEmailUser = async (req, res) => {
+    try {
+        const { email } = req.body;
+        if (!email) {
+            return res.status(400).json({ error: "Email is required" });
+        }
+
+        const otp = generateOTP(); 
+
+        // Upsert: If email exists, update OTP; otherwise, create a new entry
+        await EmailVerifyModelSigUP.findOneAndUpdate(
+            { email },
+            { otp, createdAt: new Date() }, 
+            { upsert: true, new: true } // Create if not exists, return updated document
+        );
+
+        await sentResetPasswordMail2(email, otp);
+
+        res.status(200).json({ msg: `${email}, please check your email for the OTP` });
+    } catch (error) {
+        console.error("Error verifying email:", error.message);
+        res.status(500).json({ error: "Internal Server Error" });
+    }
+};
+
+
+
 
 const verifyTokenOTP = async(req,res)=>{
     try {
@@ -207,6 +264,21 @@ const verifyTokenOTP = async(req,res)=>{
             return res.status(400).json({msg:"enter correct otp"});
         }
         user.myToken=2911200429112004;
+        await user.save();
+        res.status(200).json({ message: 'OTP verified successfully' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+}
+const verifyEmailOTP = async(req,res)=>{
+    try {
+        const {email,otp} = req.body;
+        console.log(email,otp);
+        const user=await EmailVerifyModelSigUP.findOne({email:email});
+        if(user.otp != otp){
+            return res.status(400).json({msg:"enter correct otp"});
+        }
+        user.myToken='verified';
         await user.save();
         res.status(200).json({ message: 'OTP verified successfully' });
     } catch (error) {
@@ -230,4 +302,4 @@ try {
 }
 }
 
-module.exports= {RegisterUser,LoginUser,LogoutUser,forgotPasswordUser,verifyTokenOTP,updatePasswordOTP}
+module.exports= {RegisterUser,LoginUser,LogoutUser,forgotPasswordUser,verifyTokenOTP,updatePasswordOTP,verifyEmailUser,verifyEmailOTP}
